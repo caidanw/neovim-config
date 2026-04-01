@@ -26,6 +26,7 @@ return {
         'query',
         'regex',
         'scss',
+        'swift',
         'typescript',
         'vim',
         'vimdoc',
