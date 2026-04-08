@@ -33,6 +33,21 @@ return {
   'folke/snacks.nvim',
   priority = 1000,
   lazy = false,
+  -- Neovim 0.12.0 changed LanguageTree:parse() so that a non-nil callback triggers
+  -- async parsing, which has a nil-node bug. snacks.nvim's M.parse() uses async on
+  -- nvim-0.11.4+; we patch it to force sync until upstream ships a proper fix.
+  build = function()
+    local util_file = vim.fn.stdpath('data') .. '/lazy/snacks.nvim/lua/snacks/util/init.lua'
+    local lines = vim.fn.readfile(util_file)
+    for i, line in ipairs(lines) do
+      if line:match('have_async = vim%.fn%.has') then
+        lines[i] = '  local have_async = false -- Neovim 0.12.0 async parse nil-node bug; upstream fix pending'
+        vim.fn.writefile(lines, util_file)
+        vim.notify('[snacks.nvim] Applied Neovim 0.12 async-parse compatibility patch', vim.log.levels.INFO)
+        return
+      end
+    end
+  end,
   dependencies = {
     -- Useful for getting pretty icons, but requires a Nerd Font.
     { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
