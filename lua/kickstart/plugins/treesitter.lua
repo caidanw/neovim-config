@@ -3,7 +3,47 @@
 return {
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
-    build = ':TSUpdate',
+    -- Neovim 0.12.0 changed captures from table<integer, TSNode> to table<integer, TSNode[]>.
+    -- query_predicates.lua uses match[id] expecting a single TSNode; patch it to unwrap the array.
+    -- https://github.com/nvim-treesitter/nvim-treesitter/issues/8636
+    build = function()
+      vim.cmd(':TSUpdate')
+      local pred_file = vim.fn.stdpath('data') .. '/lazy/nvim-treesitter/lua/nvim-treesitter/query_predicates.lua'
+      local lines = vim.fn.readfile(pred_file)
+      -- Already patched
+      for _, line in ipairs(lines) do
+        if line:match('function get_node') then return end
+      end
+      -- Insert get_node helper after the opts compatibility line
+      for i, line in ipairs(lines) do
+        if line:match('local opts = vim%.fn%.has') then
+          local helper = {
+            '',
+            '-- Neovim 0.12.0 changed captures from table<integer, TSNode> to table<integer, TSNode[]>',
+            '-- https://github.com/nvim-treesitter/nvim-treesitter/issues/8636',
+            'local function get_node(match, id)',
+            '  local val = match[id]',
+            '  if not val then return nil end',
+            '  if type(val) == "table" then return val[1] end',
+            '  return val',
+            'end',
+          }
+          for j = #helper, 1, -1 do
+            table.insert(lines, i + 1, helper[j])
+          end
+          -- Replace all match[id] usages
+          for k, l in ipairs(lines) do
+            lines[k] = l
+              :gsub('local node = match%[pred%[2%]%]', 'local node = get_node(match, pred[2])')
+              :gsub('local node = match%[capture_id%]', 'local node = get_node(match, capture_id)')
+              :gsub('local node = match%[id%]', 'local node = get_node(match, id)')
+          end
+          vim.fn.writefile(lines, pred_file)
+          vim.notify('[nvim-treesitter] Applied Neovim 0.12 captures TSNode[] compatibility patch', vim.log.levels.INFO)
+          return
+        end
+      end
+    end,
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     ---@module 'nvim-treesitter.configs'
