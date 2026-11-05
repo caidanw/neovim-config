@@ -100,26 +100,6 @@ return {
   {
     'nvim-treesitter/nvim-treesitter-context',
 
-    -- Neovim 0.12.0 changed LanguageTree:parse() so that any non-nil callback
-    -- triggers async parsing, which has a nil-node bug. The plugin passes a dummy
-    -- callback as a 0.11 workaround; we patch it out after every install/update.
-    -- https://github.com/nvim-treesitter/nvim-treesitter-context/issues/XXX
-    build = function()
-      local context_file = vim.fn.stdpath('data') .. '/lazy/nvim-treesitter-context/lua/treesitter-context/context.lua'
-      local lines = vim.fn.readfile(context_file)
-      -- Drop the dummy callback in place; leaving the now-harmless
-      -- diagnostic-disable comment avoids index shifts that corrupt nearby lines.
-      for i, line in ipairs(lines) do
-        local patched = line:gsub('root_tree:parse%(range, function%(%.%.%.%) end%)', 'root_tree:parse(range)')
-        if patched ~= line then
-          lines[i] = patched
-          vim.fn.writefile(lines, context_file)
-          vim.notify('[treesitter-context] Applied Neovim 0.12 async-parse compatibility patch', vim.log.levels.INFO)
-          return
-        end
-      end
-    end,
-
     ---@module 'treesitter-context'
     ---@type TSContext.UserConfig
     opts = {
