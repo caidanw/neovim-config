@@ -3,54 +3,15 @@
 return {
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
-    -- Neovim 0.12.0 changed captures from table<integer, TSNode> to table<integer, TSNode[]>.
-    -- query_predicates.lua uses match[id] expecting a single TSNode; patch it to unwrap the array.
-    -- https://github.com/nvim-treesitter/nvim-treesitter/issues/8636
-    build = function()
-      vim.cmd(':TSUpdate')
-      local pred_file = vim.fn.stdpath('data') .. '/lazy/nvim-treesitter/lua/nvim-treesitter/query_predicates.lua'
-      local lines = vim.fn.readfile(pred_file)
-      -- Already patched
-      for _, line in ipairs(lines) do
-        if line:match('function get_node') then return end
-      end
-      -- Insert get_node helper after the opts compatibility line
-      for i, line in ipairs(lines) do
-        if line:match('local opts = vim%.fn%.has') then
-          local helper = {
-            '',
-            '-- Neovim 0.12.0 changed captures from table<integer, TSNode> to table<integer, TSNode[]>',
-            '-- https://github.com/nvim-treesitter/nvim-treesitter/issues/8636',
-            'local function get_node(match, id)',
-            '  local val = match[id]',
-            '  if not val then return nil end',
-            '  if type(val) == "table" then return val[1] end',
-            '  return val',
-            'end',
-          }
-          for j = #helper, 1, -1 do
-            table.insert(lines, i + 1, helper[j])
-          end
-          -- Replace all match[id] usages
-          for k, l in ipairs(lines) do
-            lines[k] = l
-              :gsub('local node = match%[pred%[2%]%]', 'local node = get_node(match, pred[2])')
-              :gsub('local node = match%[capture_id%]', 'local node = get_node(match, capture_id)')
-              :gsub('local node = match%[id%]', 'local node = get_node(match, id)')
-          end
-          vim.fn.writefile(lines, pred_file)
-          vim.notify('[nvim-treesitter] Applied Neovim 0.12 captures TSNode[] compatibility patch', vim.log.levels.INFO)
-          return
-        end
-      end
-    end,
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
-    -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
-    ---@module 'nvim-treesitter.configs'
-    ---@type TSConfig
-    ---@diagnostic disable-next-line: missing-fields
-    opts = {
-      ensure_installed = {
+    branch = 'main', -- the rewrite; master is frozen. Requires the tree-sitter CLI to compile parsers.
+    lazy = false, -- rewrite does not support lazy-loading
+    build = ':TSUpdate',
+
+    -- Parsers to keep installed/updated. The rewrite has no `configs` module,
+    -- no `auto_install`, and no `highlight`/`indent` options: we install here
+    -- and enable per-buffer in the FileType autocmd below.
+    config = function()
+      local ensure_installed = {
         'bash',
         'c',
         'cmake',
@@ -69,57 +30,71 @@ return {
         'typescript',
         'vim',
         'vimdoc',
-      },
-      -- Autoinstall languages that are not installed
-      auto_install = true,
-      highlight = {
-        enable = true,
-        -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
-        --  If you are experiencing weird indenting issues, add the language to
-        --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
-      },
-      indent = { enable = true, disable = { 'ruby' } },
-    },
-    -- There are additional nvim-treesitter modules that you can use to interact
-    -- with nvim-treesitter. You should go explore a few and see what interests you:
-    --
-    --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
-    --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
-    --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+      }
+
+      require('nvim-treesitter').install(ensure_installed)
+
+      -- Enable highlighting + experimental indent per buffer. Auto-install a
+      -- missing supported parser on first open, then attach once it is ready.
+      vim.api.nvim_create_autocmd('FileType', {
+        callback = function(ev)
+          local lang = vim.treesitter.language.get_lang(ev.match)
+
+          -- Ruby relies on vim's regex indent; skip treesitter indent for it.
+          if lang ~= 'ruby' then
+            vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+
+          if not vim.tbl_contains(require('nvim-treesitter.config').get_available(), lang) then
+            return
+          end
+
+          if pcall(vim.treesitter.start, ev.buf, lang) then
+            return
+          end
+
+          -- Parser missing: install async, then start highlighting when done.
+          require('nvim-treesitter').install(lang):await(function()
+            pcall(vim.treesitter.start, ev.buf, lang)
+          end)
+        end,
+      })
+    end,
   },
   {
     'nvim-treesitter/nvim-treesitter-textobjects',
+    branch = 'main',
     dependencies = { 'nvim-treesitter/nvim-treesitter' },
     config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('nvim-treesitter.configs').setup({
-        textobjects = {
-          move = {
-            enable = true,
-            goto_next_start = {
-              [']f'] = '@function.outer',
-              [']c'] = '@class.outer',
-              [']a'] = '@parameter.inner',
-            },
-            goto_next_end = {
-              [']F'] = '@function.outer',
-              [']C'] = '@class.outer',
-              [']A'] = '@parameter.inner',
-            },
-            goto_previous_start = {
-              ['[f'] = '@function.outer',
-              ['[c'] = '@class.outer',
-              ['[a'] = '@parameter.inner',
-            },
-            goto_previous_end = {
-              ['[F'] = '@function.outer',
-              ['[C'] = '@class.outer',
-              ['[A'] = '@parameter.inner',
-            },
-          },
-        },
+      require('nvim-treesitter-textobjects').setup({
+        move = { set_jumps = true },
       })
+
+      -- move keymaps: (key, capture) pairs shared across the four directions.
+      local move = require('nvim-treesitter-textobjects.move')
+      local targets = {
+        { 'f', '@function.outer' },
+        { 'c', '@class.outer' },
+        { 'a', '@parameter.inner' },
+      }
+
+      for _, target in ipairs(targets) do
+        local key, capture = target[1], target[2]
+        local modes = { 'n', 'x', 'o' }
+
+        vim.keymap.set(modes, ']' .. key, function()
+          move.goto_next_start(capture, 'textobjects')
+        end)
+        vim.keymap.set(modes, ']' .. key:upper(), function()
+          move.goto_next_end(capture, 'textobjects')
+        end)
+        vim.keymap.set(modes, '[' .. key, function()
+          move.goto_previous_start(capture, 'textobjects')
+        end)
+        vim.keymap.set(modes, '[' .. key:upper(), function()
+          move.goto_previous_end(capture, 'textobjects')
+        end)
+      end
     end,
   },
   {
@@ -132,13 +107,12 @@ return {
     build = function()
       local context_file = vim.fn.stdpath('data') .. '/lazy/nvim-treesitter-context/lua/treesitter-context/context.lua'
       local lines = vim.fn.readfile(context_file)
+      -- Drop the dummy callback in place; leaving the now-harmless
+      -- diagnostic-disable comment avoids index shifts that corrupt nearby lines.
       for i, line in ipairs(lines) do
-        if line:match('root_tree:parse%(range, function%(%.%.%.%) end%)') then
-          -- Remove the diagnostic-disable comment on the preceding line
-          if i > 1 and lines[i - 1]:match('redundant%-parameter') then
-            table.remove(lines, i - 1)
-          end
-          lines[i] = line:gsub('root_tree:parse%(range, function%(%.%.%.%) end%)', 'root_tree:parse(range)')
+        local patched = line:gsub('root_tree:parse%(range, function%(%.%.%.%) end%)', 'root_tree:parse(range)')
+        if patched ~= line then
+          lines[i] = patched
           vim.fn.writefile(lines, context_file)
           vim.notify('[treesitter-context] Applied Neovim 0.12 async-parse compatibility patch', vim.log.levels.INFO)
           return
