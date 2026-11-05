@@ -62,14 +62,12 @@ return {
       spec = {
         {
           mode = { 'n', 'v' },
-          { '<leader>a', group = 'ai' },
           { '<leader>c', group = 'code' },
           { '<leader>f', group = 'file/find' },
           { '<leader>g', group = 'git' },
           -- { '<leader>gh', group = 'hunks' },
           { '<leader>s', group = 'search' },
           { '<leader>u', group = 'ui' },
-          { '<leader>o', group = 'opencode' },
           { 'g', group = 'goto' },
           { 'gs', group = 'surround' },
           { 'z', group = 'fold' },

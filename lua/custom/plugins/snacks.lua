@@ -85,6 +85,7 @@ return {
     explorer = {},
     gitbrowse = {},
     indent = {},
+    input = {},
     lazygit = {
       interactive = true,
       win = {
