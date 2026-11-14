@@ -20,7 +20,7 @@ return {
       },
       diagnostics = {
         globals = { 'vim' },
-        -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
+        -- Uncomment to silence lua_ls's noisy `missing-fields` warnings.
         -- disable = { 'missing-fields' },
       },
       -- Make the server aware of Neovim runtime files

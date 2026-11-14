@@ -45,13 +45,7 @@ return {
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-
-        -- Conform can also run multiple formatters sequentially
         python = { 'ruff_fix', 'ruff_format', 'ruff_organize_imports' },
-
-        -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { 'prettierd', 'prettier', stop_after_first = true },
-
         javascript = { 'prettier' },
         javascriptreact = { 'prettier' },
         typescript = { 'prettier' },
@@ -85,7 +79,7 @@ return {
       },
     },
     init = function()
-      -- If you want the formatexpr, here is the place to set it
+      -- `gq` formats with conform too.
       vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
 
       vim.g.autoformat = true

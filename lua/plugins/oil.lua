@@ -5,12 +5,11 @@ return {
   ---@module 'oil'
   ---@type oil.SetupOpts
   opts = {
-    -- Oil will take over directory buffers (e.g. `nvim .` or `:e src/`)
-    -- Set to false if you want some other plugin (e.g. netrw) to open when you edit directories.
+    -- Open directories (`nvim .`, `:e src/`) in oil instead of netrw.
     default_file_explorer = true,
     -- Send deleted files to the trash instead of permanently deleting them (:help oil-trash)
     delete_to_trash = true,
-    -- Set to true to watch the filesystem for changes and reload oil
+    -- Reload when files change on disk.
     watch_for_changes = true,
 
     keymaps = {
@@ -27,9 +26,7 @@ return {
       },
     },
   },
-  -- Optional dependencies
-  -- dependencies = { { 'echasnovski/mini.icons', opts = {} } },
-  -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
+  -- oil's docs advise against lazy-loading it.
   lazy = false,
   keys = {
     { '<leader>fo', '<CMD>Oil<CR>', mode = 'n', desc = 'Open Oil' },

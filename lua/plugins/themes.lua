@@ -12,9 +12,6 @@ return {
         theme = 'light',
         blend = 1.5,
       },
-      telescope = {
-        style = 'classic',
-      },
       after_palette = function(palette)
         local U = require('nordic.utils')
 

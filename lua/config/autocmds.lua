@@ -1,13 +1,9 @@
--- [[ Basic Autocommands ]]
---  See `:help lua-guide-autocommands`
+-- General autocommands. See `:help lua-guide-autocommands`.
 
 local function augroup(name)
-  return vim.api.nvim_create_augroup('caidan:' .. name, { clear = true })
+  return vim.api.nvim_create_augroup('config.' .. name, { clear = true })
 end
 
--- Highlight when yanking (copying) text
---  Try it with `yap` in normal mode
---  See `:help vim.hl.on_yank()`
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = augroup('highlight_yank'),
@@ -70,23 +66,7 @@ vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
 -- Close some filetypes with <q>
 vim.api.nvim_create_autocmd('FileType', {
   group = augroup('close_with_q'),
-  pattern = {
-    'PlenaryTestPopup',
-    'checkhealth',
-    'dbout',
-    'gitsigns-blame',
-    'grug-far',
-    'help',
-    'lspinfo',
-    'neotest-output',
-    'neotest-output-panel',
-    'neotest-summary',
-    'notify',
-    'qf',
-    'spectre_panel',
-    'startuptime',
-    'tsplayground',
-  },
+  pattern = { 'checkhealth', 'gitsigns-blame', 'help', 'qf' },
   callback = function(event)
     vim.bo[event.buf].buflisted = false
     vim.schedule(function()
