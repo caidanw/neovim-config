@@ -35,6 +35,12 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('gO', Snacks.picker.lsp_symbols, 'Open Document Symbols')
     map('gW', Snacks.picker.lsp_workspace_symbols, 'Open Workspace Symbols')
     map('gy', Snacks.picker.lsp_type_definitions, 'Goto Type Definition')
+
+    -- Editing an HTML/JSX tag name also renames its closing tag, where the server supports it.
+    local client = vim.lsp.get_client_by_id(event.data.client_id)
+    if client and client:supports_method('textDocument/linkedEditingRange') then
+      vim.lsp.linked_editing_range.enable(true, { client_id = client.id })
+    end
   end,
 })
 

@@ -80,6 +80,5 @@ vim.keymap.del('n', 'grr')
 vim.keymap.del('n', 'gri')
 vim.keymap.del('n', 'grt')
 vim.keymap.del('n', 'gO')
-vim.keymap.del('i', '<C-s>')
 
 -- vim: ts=2 sts=2 sw=2 et

@@ -105,7 +105,7 @@ return {
     scratch = {},
     scroll = {
       filter = function(bufnr)
-        return vim.bo[bufnr].buftype ~= 'terminal' and vim.bo[bufnr].filetype ~= 'blink-cmp-menu'
+        return vim.bo[bufnr].buftype ~= 'terminal'
       end,
     },
     terminal = {
