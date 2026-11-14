@@ -28,13 +28,16 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('<leader>co', organize_imports, 'Organize Imports')
     map('<leader>cd', vim.diagnostic.open_float, 'Show Diagnostics')
 
-    map('gr', Snacks.picker.lsp_references, 'Goto References')
-    map('gi', Snacks.picker.lsp_implementations, 'Goto Implementation')
+    -- Built-in defaults kept as is: grn rename, gra code action, grx run codelens,
+    -- K hover, <C-s> signature help. These override the built-in list/quickfix
+    -- versions with snacks pickers, on the same keys.
+    map('grr', Snacks.picker.lsp_references, 'References')
+    map('gri', Snacks.picker.lsp_implementations, 'Implementations')
+    map('grt', Snacks.picker.lsp_type_definitions, 'Type Definitions')
+    map('gO', Snacks.picker.lsp_symbols, 'Document Symbols')
+    map('gW', Snacks.picker.lsp_workspace_symbols, 'Workspace Symbols')
     map('gd', Snacks.picker.lsp_definitions, 'Goto Definition')
     map('gD', Snacks.picker.lsp_declarations, 'Goto Declaration')
-    map('gO', Snacks.picker.lsp_symbols, 'Open Document Symbols')
-    map('gW', Snacks.picker.lsp_workspace_symbols, 'Open Workspace Symbols')
-    map('gy', Snacks.picker.lsp_type_definitions, 'Goto Type Definition')
 
     -- Editing an HTML/JSX tag name also renames its closing tag, where the server supports it.
     local client = vim.lsp.get_client_by_id(event.data.client_id)

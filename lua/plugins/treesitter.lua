@@ -37,6 +37,7 @@ return {
       -- Enable highlighting + experimental indent per buffer. Auto-install a
       -- missing supported parser on first open, then attach once it is ready.
       vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('config.treesitter', { clear = true }),
         callback = function(ev)
           local lang = vim.treesitter.language.get_lang(ev.match)
 
@@ -70,30 +71,46 @@ return {
         move = { set_jumps = true },
       })
 
-      -- move keymaps: (key, capture) pairs shared across the four directions.
+      -- ]f/[f start of next/previous function, ]F/[F its end; same for c (class)
+      -- and a (argument).
       local move = require('nvim-treesitter-textobjects.move')
       local targets = {
-        { 'f', '@function.outer' },
-        { 'c', '@class.outer' },
-        { 'a', '@parameter.inner' },
+        { 'f', '@function.outer', 'function' },
+        { 'c', '@class.outer', 'class' },
+        { 'a', '@parameter.inner', 'argument' },
       }
 
-      for _, target in ipairs(targets) do
-        local key, capture = target[1], target[2]
-        local modes = { 'n', 'x', 'o' }
+      -- In a diff window, ]c/[c keep their built-in meaning: next/previous change.
+      local function unless_diff(key, fn)
+        if key ~= ']c' and key ~= '[c' then
+          return fn
+        end
+        return function()
+          if vim.wo.diff then
+            vim.cmd.normal({ vim.v.count1 .. key, bang = true })
+          else
+            fn()
+          end
+        end
+      end
 
-        vim.keymap.set(modes, ']' .. key, function()
+      for _, target in ipairs(targets) do
+        local key, capture, name = target[1], target[2], target[3]
+        local function set(lhs, fn, desc)
+          vim.keymap.set({ 'n', 'x', 'o' }, lhs, unless_diff(lhs, fn), { desc = desc .. ' ' .. name })
+        end
+        set(']' .. key, function()
           move.goto_next_start(capture, 'textobjects')
-        end)
-        vim.keymap.set(modes, ']' .. key:upper(), function()
+        end, 'Next')
+        set(']' .. key:upper(), function()
           move.goto_next_end(capture, 'textobjects')
-        end)
-        vim.keymap.set(modes, '[' .. key, function()
+        end, 'Next end of')
+        set('[' .. key, function()
           move.goto_previous_start(capture, 'textobjects')
-        end)
-        vim.keymap.set(modes, '[' .. key:upper(), function()
+        end, 'Previous')
+        set('[' .. key:upper(), function()
           move.goto_previous_end(capture, 'textobjects')
-        end)
+        end, 'Previous end of')
       end
     end,
   },

@@ -73,6 +73,12 @@ return {
       -- Extra around/inside textobjects, e.g. `va)`, `ci'`, `daf` (function).
       local ai = require('mini.ai')
       ai.setup({
+        -- `an`/`in` are Neovim's built-in grow/shrink selection by syntax node,
+        -- so mini.ai's "next textobject" variants use `aa`/`ii` instead.
+        mappings = {
+          around_next = 'aa',
+          inside_next = 'ii',
+        },
         n_lines = 500,
         search_method = 'cover_or_nearest',
         custom_textobjects = {

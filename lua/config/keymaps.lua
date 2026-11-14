@@ -1,84 +1,45 @@
--- [[ Basic Keymaps ]]
---  See `:help vim.keymap.set()`
+-- General keymaps. LSP keymaps are in config/lsp.lua; plugin keymaps live in their specs.
+local map = vim.keymap.set
 
--- Clear highlights on search when pressing <Esc> in normal mode
---  See `:help hlsearch`
-vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+map('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlight' })
+map('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Diagnostics to location list' })
+map('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
--- Diagnostic keymaps
-vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic Quickfix list' })
+-- Windows
+map('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+map('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+map('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+map('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+map('n', '<leader>-', '<C-W>s', { desc = 'Split Window Below', remap = true })
+map('n', '<leader>|', '<C-W>v', { desc = 'Split Window Right', remap = true })
+map('n', '<leader>wd', '<C-W>c', { desc = 'Delete Window', remap = true })
 
--- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
--- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
--- is not what someone will guess without a bit more experience.
---
--- NOTE: This won't work in all terminal emulators/tmux/etc. Try your own mapping
--- or just use <C-\><C-n> to exit terminal mode
-vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
+-- Move by display line unless a count is given, so `5j` still counts real lines.
+map({ 'n', 'x' }, 'j', "v:count == 0 ? 'gj' : 'j'", { desc = 'Down', expr = true, silent = true })
+map({ 'n', 'x' }, 'k', "v:count == 0 ? 'gk' : 'k'", { desc = 'Up', expr = true, silent = true })
 
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
+-- Buffers and files
+map('n', '<leader>bb', '<cmd>e #<cr>', { desc = 'Switch to Other Buffer' })
+map('n', '<leader>fn', '<cmd>enew<cr>', { desc = 'New File' })
 
--- Keybinds to make split navigation easier.
---  Use CTRL+<hjkl> to switch between windows
---
---  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- Move lines
+map('n', '<A-j>', "<cmd>execute 'move .+' . v:count1<cr>==", { desc = 'Move Down' })
+map('n', '<A-k>', "<cmd>execute 'move .-' . (v:count1 + 1)<cr>==", { desc = 'Move Up' })
+map('i', '<A-j>', '<esc><cmd>m .+1<cr>==gi', { desc = 'Move Down' })
+map('i', '<A-k>', '<esc><cmd>m .-2<cr>==gi', { desc = 'Move Up' })
+map('v', '<A-j>', ":<C-u>execute \"'<,'>move '>+\" . v:count1<cr>gv=gv", { desc = 'Move Down' })
+map('v', '<A-k>', ":<C-u>execute \"'<,'>move '<-\" . (v:count1 + 1)<cr>gv=gv", { desc = 'Move Up' })
 
--- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
--- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
--- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
--- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
--- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
+-- Keep the selection after indenting
+map('v', '<', '<gv', { desc = 'Indent left and keep selection' })
+map('v', '>', '>gv', { desc = 'Indent right and keep selection' })
 
--- Better up/down
-vim.keymap.set({ 'n', 'x' }, 'j', "v:count == 0 ? 'gj' : 'j'", { desc = 'Down', expr = true, silent = true })
-vim.keymap.set({ 'n', 'x' }, 'k', "v:count == 0 ? 'gk' : 'k'", { desc = 'Up', expr = true, silent = true })
+-- Run Lua
+map('n', '<leader>cx', '<cmd>source %<CR>', { desc = 'Source current file' })
+map('n', '<leader>cX', '<cmd>.lua<CR>', { desc = 'Execute current line as Lua' })
+map('v', '<leader>cx', '<cmd>lua<CR>', { desc = 'Execute selection as Lua' })
 
--- Window management
-vim.keymap.set('n', '<leader>-', '<C-W>s', { desc = 'Split Window Below', remap = true })
-vim.keymap.set('n', '<leader>|', '<C-W>v', { desc = 'Split Window Right', remap = true })
-vim.keymap.set('n', '<leader>wd', '<C-W>c', { desc = 'Delete Window', remap = true })
-
--- Buffer management
-vim.keymap.set('n', '<leader>bb', '<cmd>e #<cr>', { desc = 'Switch to Other Buffer' })
-
--- File management
-vim.keymap.set('n', '<leader>fn', '<cmd>enew<cr>', { desc = 'New File' })
-
--- Move Lines
-vim.keymap.set('n', '<A-j>', "<cmd>execute 'move .+' . v:count1<cr>==", { desc = 'Move Down' })
-vim.keymap.set('n', '<A-k>', "<cmd>execute 'move .-' . (v:count1 + 1)<cr>==", { desc = 'Move Up' })
-vim.keymap.set('i', '<A-j>', '<esc><cmd>m .+1<cr>==gi', { desc = 'Move Down' })
-vim.keymap.set('i', '<A-k>', '<esc><cmd>m .-2<cr>==gi', { desc = 'Move Up' })
-vim.keymap.set('v', '<A-j>', ":<C-u>execute \"'<,'>move '>+\" . v:count1<cr>gv=gv", { desc = 'Move Down' })
-vim.keymap.set('v', '<A-k>', ":<C-u>execute \"'<,'>move '<-\" . (v:count1 + 1)<cr>gv=gv", { desc = 'Move Up' })
-
--- Visual mode indenting that keeps selection
-vim.keymap.set('v', '<', '<gv', { desc = 'Indent left and keep selection' })
-vim.keymap.set('v', '>', '>gv', { desc = 'Indent right and keep selection' })
-
--- Source current file and execute lua code
-vim.keymap.set('n', '<leader>cx', '<cmd>source %<CR>', { desc = 'Source current file' })
-vim.keymap.set('n', '<leader>cX', '<cmd>.lua<CR>', { desc = 'Execute current line as Lua' })
-vim.keymap.set('v', '<leader>cx', '<cmd>lua<CR>', { desc = 'Execute selection as Lua' })
-
--- Miscellaneous
-vim.keymap.set('n', '<leader>L', '<cmd>Lazy<CR>', { desc = 'Lazy' })
-vim.keymap.set('n', '<leader>zz', '<cmd>qa<cr>', { desc = 'Quit All' })
-
--- Delete default LSP keymaps to prevent conflicts with custom mappings in lspconfig
-vim.keymap.del('n', 'grn')
-vim.keymap.del('n', 'gra')
-vim.keymap.del('n', 'grr')
-vim.keymap.del('n', 'gri')
-vim.keymap.del('n', 'grt')
-vim.keymap.del('n', 'gO')
+map('n', '<leader>L', '<cmd>Lazy<CR>', { desc = 'Lazy' })
+map('n', '<leader>zz', '<cmd>qa<cr>', { desc = 'Quit All' })
 
 -- vim: ts=2 sts=2 sw=2 et
