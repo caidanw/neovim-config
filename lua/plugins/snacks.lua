@@ -162,7 +162,7 @@ return {
         setup_snacks_toggles()
 
         -- Create toggle mapping for custom macro recording keymaps
-        local MacroRecording = require('custom.macro_recording')
+        local MacroRecording = require('config.macro_recording')
         MacroRecording.setup()
         Snacks.toggle
           .new({
