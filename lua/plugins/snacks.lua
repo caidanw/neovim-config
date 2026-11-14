@@ -33,36 +33,38 @@ return {
   'folke/snacks.nvim',
   priority = 1000,
   lazy = false,
-  dependencies = {
-    -- Useful for getting pretty icons, but requires a Nerd Font.
-    { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
-  },
-
-  -- snacks.nvim is a plugin that contains a collection of QoL improvements.
-  -- One of those plugins is called snacks-picker
-  -- It is a fuzzy finder, inspired by Telescope, that comes with a lot of different
-  -- things that it can fuzzy find! It's more than just a "file finder", it can search
-  -- many different aspects of Neovim, your workspace, LSP, and more!
-  --
-  -- Two important keymaps to use while in a picker are:
-  --  - Insert mode: <c-/>
-  --  - Normal mode: ?
-  --
-  -- This opens a window that shows you all of the keymaps for the current
-  -- Snacks picker. This is really useful to discover what snacks-picker can
-  -- do as well as how to actually do it!
-
-  -- [[ Configure Snacks ]]
-  -- See `:help snacks-init`
   ---@module 'snacks'
   ---@type snacks.Config
   opts = {
     dashboard = {
+      preset = {
+        -- Snacks' default keys, except Restore Session uses config.session.
+        -- stylua: ignore
+        keys = {
+          { icon = ' ', key = 'f', desc = 'Find File', action = ":lua Snacks.dashboard.pick('files')" },
+          { icon = ' ', key = 'n', desc = 'New File', action = ':ene | startinsert' },
+          { icon = ' ', key = 'g', desc = 'Find Text', action = ":lua Snacks.dashboard.pick('live_grep')" },
+          { icon = ' ', key = 'r', desc = 'Recent Files', action = ":lua Snacks.dashboard.pick('oldfiles')" },
+          { icon = ' ', key = 'c', desc = 'Config', action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
+          { icon = ' ', key = 's', desc = 'Restore Session', action = function() require('config.session').load() end },
+          { icon = '󰒲 ', key = 'L', desc = 'Lazy', action = ':Lazy' },
+          { icon = ' ', key = 'q', desc = 'Quit', action = ':qa' },
+        },
+      },
       sections = {
         { section = 'header' },
         { section = 'keys', gap = 1, padding = 2 },
         { icon = ' ', title = 'Recent Files', section = 'recent_files', indent = 2, padding = 2 },
-        { icon = ' ', title = 'Projects', section = 'projects', indent = 2, padding = 2 },
+        {
+          icon = ' ',
+          title = 'Projects',
+          section = 'projects',
+          indent = 2,
+          padding = 2,
+          action = function(dir)
+            require('config.session').open_project(dir)
+          end,
+        },
         { section = 'startup' },
       },
     },
@@ -84,6 +86,14 @@ return {
     notifier = {},
     picker = {
       sources = {
+        projects = {
+          confirm = function(picker, item)
+            picker:close()
+            if item then
+              require('config.session').open_project(item.file)
+            end
+          end,
+        },
         explorer = {
           auto_close = false,
           hidden = true,

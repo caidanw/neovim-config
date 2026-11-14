@@ -1,4 +1,4 @@
--- register all text objects with which-key
+-- Register mini.ai textobjects with which-key so they show up in its popup.
 ---@param opts table
 local function ai_whichkey(opts)
   local objects = {
@@ -63,123 +63,84 @@ end
 ---@module 'lazy'
 ---@type LazySpec
 return {
-  { -- Collection of various small independent plugins/modules
-    'echasnovski/mini.nvim',
+  {
+    'nvim-mini/mini.nvim',
     config = function()
-      -- Better Around/Inside textobjects
-      --
-      -- Examples:
-      --  - va)  - [V]isually select [A]round [)]paren
-      --  - yinq - [Y]ank [I]nside [N]ext [Q]uote
-      --  - ci'  - [C]hange [I]nside [']quote
+      -- Icons. Plugins that only know nvim-web-devicons get a compatible shim.
+      require('mini.icons').setup()
+      MiniIcons.mock_nvim_web_devicons()
+
+      -- Extra around/inside textobjects, e.g. `va)`, `ci'`, `daf` (function).
       local ai = require('mini.ai')
       ai.setup({
-        n_lines = 500, -- Number of lines within which textobject is searched
-        search_method = 'cover_or_nearest', -- How to search for object (first inside current line, then inside neighborhood).
-
-        -- Table with textobject id as fields, textobject specification as values.
-        -- Also use this to disable builtin textobjects. See |MiniAi.config|.
+        n_lines = 500,
+        search_method = 'cover_or_nearest',
         custom_textobjects = {
-          f = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' }), -- function
-          c = ai.gen_spec.treesitter({ a = '@class.outer', i = '@class.inner' }), -- class
-          t = { '<([%p%w]-)%f[^<%w][^<>]->.-</%1>', '^<.->().*()</[^/]->$' }, -- tags
+          f = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' }),
+          c = ai.gen_spec.treesitter({ a = '@class.outer', i = '@class.inner' }),
+          t = { '<([%p%w]-)%f[^<%w][^<>]->.-</%1>', '^<.->().*()</[^/]->$' }, -- tag
           d = { '%f[%d]%d+' }, -- digits
-          u = ai.gen_spec.function_call(), -- u for "Usage"
-          U = ai.gen_spec.function_call({ name_pattern = '[%w_]' }), -- without dot in function name
-
-          -- Block, conditional, loop
-          o = ai.gen_spec.treesitter({ -- code block
+          u = ai.gen_spec.function_call(), -- call
+          U = ai.gen_spec.function_call({ name_pattern = '[%w_]' }), -- call, without dots in the name
+          o = ai.gen_spec.treesitter({ -- block, conditional, loop
             a = { '@block.outer', '@conditional.outer', '@loop.outer' },
             i = { '@block.inner', '@conditional.inner', '@loop.inner' },
           }),
-
-          -- Whole buffer
-          g = function()
+          g = function() -- whole buffer
             local from = { line = 1, col = 1 }
-            local to = {
-              line = vim.fn.line('$'),
-              col = math.max(vim.fn.getline('$'):len(), 1),
-            }
+            local to = { line = vim.fn.line('$'), col = math.max(vim.fn.getline('$'):len(), 1) }
             return { from = from, to = to }
           end,
         },
       })
-
-      -- Register text objects with which-key
       vim.schedule(function()
         ai_whichkey(require('mini.ai').config)
       end)
 
-      -- Add/delete/replace surroundings (brackets, quotes, etc.)
-      --
-      -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-      -- - sd'   - [S]urround [D]elete [']quotes
-      -- - sr)'  - [S]urround [R]eplace [)] [']
+      -- Add/delete/replace surroundings under the `gs` prefix.
       require('mini.surround').setup({
         n_lines = 500,
         mappings = {
-          add = 'gsa', -- Add surrounding in Normal and Visual modes
-          delete = 'gsd', -- Delete surrounding
-          find = 'gsf', -- Find surrounding (to the right)
-          find_left = 'gsF', -- Find surrounding (to the left)
-          highlight = 'gsh', -- Highlight surrounding
-          replace = 'gsr', -- Replace surrounding
-          update_n_lines = 'gsn', -- Update `n_lines`
+          add = 'gsa',
+          delete = 'gsd',
+          find = 'gsf',
+          find_left = 'gsF',
+          highlight = 'gsh',
+          replace = 'gsr',
+          update_n_lines = 'gsn',
         },
       })
 
-      -- Simple and easy statusline.
-      --  You could remove this setup call if you don't like it,
-      --  and try some other statusline plugin
       local statusline = require('mini.statusline')
-      -- set use_icons to true if you have a Nerd Font
       statusline.setup({ use_icons = vim.g.have_nerd_font })
-
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
       statusline.section_location = function()
         return '%2l:%-2v'
       end
 
-      -- -- Highlight Patterns for hex colors and comments
-      -- local hipatterns = require('mini.hipatterns')
-      -- hipatterns.setup({
-      --   highlighters = {
-      --     -- Highlight standalone 'FIXME', 'HACK', 'TODO', 'NOTE'
-      --     -- fixme = { pattern = '%f[%w]()FIXME()%f[%W]', group = 'MiniHipatternsFixme' },
-      --     -- hack = { pattern = '%f[%w]()HACK()%f[%W]', group = 'MiniHipatternsHack' },
-      --     -- todo = { pattern = '%f[%w]()TODO()%f[%W]', group = 'MiniHipatternsTodo' },
-      --     -- note = { pattern = '%f[%w]()NOTE()%f[%W]', group = 'MiniHipatternsNote' },
-      --
-      --     -- Highlight hex color strings (`#rrggbb`) using that color
-      --     hex_color = hipatterns.gen_highlighter.hex_color(),
-      --   },
-      --   tailwind = {
-      --     enabled = true,
-      --     ft = {
-      --       'astro',
-      --       'css',
-      --       'heex',
-      --       'html',
-      --       'html-eex',
-      --       'javascript',
-      --       'javascriptreact',
-      --       'rust',
-      --       'svelte',
-      --       'typescript',
-      --       'typescriptreact',
-      --       'vue',
-      --     },
-      --     -- full: the whole css class will be highlighted
-      --     -- compact: only the color will be highlighted
-      --     style = 'full',
-      --   },
-      -- })
-
-      -- ... and there is more!
-      --  Check out: https://github.com/echasnovski/mini.nvim
+      -- Highlight TODO-style keywords followed by a colon, and hex colors.
+      local hipatterns = require('mini.hipatterns')
+      local function keyword(words, group)
+        local patterns = vim.tbl_map(function(word)
+          return '%f[%w]()' .. word .. '()%s*:'
+        end, words)
+        return { pattern = patterns, group = group }
+      end
+      local hex_color = hipatterns.gen_highlighter.hex_color({
+        -- In CSS-like files the language server already colors these (vim.lsp.document_color).
+        filter = function(buf)
+          return not vim.tbl_contains({ 'css', 'scss', 'less', 'sass' }, vim.bo[buf].filetype)
+        end,
+      })
+      hipatterns.setup({
+        highlighters = {
+          fixme = keyword({ 'FIXME', 'FIX', 'BUG' }, 'MiniHipatternsFixme'),
+          hack = keyword({ 'HACK', 'WARN', 'WARNING' }, 'MiniHipatternsHack'),
+          todo = keyword({ 'TODO' }, 'MiniHipatternsTodo'),
+          note = keyword({ 'NOTE', 'INFO', 'PERF' }, 'MiniHipatternsNote'),
+          hex_color = hex_color,
+        },
+      })
     end,
   },
 }
