@@ -4,10 +4,7 @@ return {
   settings = {
     Lua = {
       completion = {
-        -- Complete function names without argument snippets. Built-in completion
-        -- expands snippets only after a completionItem/resolve round trip, and
-        -- pressing <Esc> during it expands the snippet at the wrong column.
-        callSnippet = 'Disable',
+        callSnippet = 'Replace',
       },
       runtime = {
         version = 'LuaJIT',
