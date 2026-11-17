@@ -8,6 +8,7 @@ vim.g.have_nerd_font = true
 require('config.options')
 require('config.keymaps')
 require('config.autocmds')
+require('config.progress').setup()
 require('config.lsp')
 require('config.completion')
 require('config.session').setup()

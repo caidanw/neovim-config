@@ -64,18 +64,37 @@ vim.diagnostic.config({
   virtual_lines = { current_line = true },
 })
 
--- Show LSP progress (indexing, loading workspace, ...) as progress messages.
--- The cmdline shows them, and so do terminals that support OSC 9;4 progress bars.
+-- Turn LSP progress (indexing, loading workspace, ...) into native progress
+-- messages, titled with the server name. lua/config/progress.lua draws them in
+-- the corner, and terminals that support OSC 9;4 show a progress bar.
+-- Servers send a task's title only in its first ('begin') report, so remember it.
+local progress_titles = {} ---@type table<string, string>
 vim.api.nvim_create_autocmd('LspProgress', {
   group = vim.api.nvim_create_augroup('config.lsp_progress', { clear = true }),
   callback = function(ev)
     local value = ev.data.params.value
-    vim.api.nvim_echo({ { value.message or 'done' } }, false, {
-      id = 'lsp.' .. ev.data.params.token,
+    local key = ev.data.client_id .. ':' .. tostring(ev.data.params.token)
+    if value.kind == 'begin' then
+      progress_titles[key] = value.title
+    end
+    local parts = {} ---@type string[]
+    for _, part in ipairs({ progress_titles[key] or '', value.message or '' }) do
+      if part ~= '' then
+        table.insert(parts, part)
+      end
+    end
+    local text = table.concat(parts, ' ')
+    if value.kind == 'end' then
+      progress_titles[key] = nil
+    end
+
+    local client = vim.lsp.get_client_by_id(ev.data.client_id)
+    vim.api.nvim_echo({ { text ~= '' and text or 'done' } }, false, {
+      id = 'lsp.' .. key,
       kind = 'progress',
       source = 'vim.lsp',
-      title = value.title,
-      status = value.kind ~= 'end' and 'running' or 'success',
+      title = client and client.name or 'LSP',
+      status = value.kind == 'end' and 'success' or 'running',
       percent = value.percentage,
     })
   end,

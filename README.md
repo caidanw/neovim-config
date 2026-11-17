@@ -45,6 +45,7 @@ lua/config/
   keymaps.lua            General keymaps
   autocmds.lua           General autocommands
   lsp.lua                LSP keymaps, diagnostics, progress messages
+  progress.lua           Corner widget for progress messages
   completion.lua         Built-in completion as you type
   session.lua            Per-directory sessions
   lsp_suggest/           Offers to install a language server for new file types
@@ -66,7 +67,7 @@ spell/                   Personal spelling words
 |---|---|
 | Completion | `'autocomplete'` with the language server first, then buffer words (`lua/config/completion.lua`) |
 | Language servers | `vim.lsp.config` files in `lsp/`, enabled by mason-lspconfig |
-| LSP progress | Progress messages from `LspProgress` events |
+| Progress | LSP and Mason progress become native progress messages, drawn in the bottom-right corner by `lua/config/progress.lua` |
 | Color swatches in CSS | `vim.lsp.document_color` |
 | Matching tag rename | `vim.lsp.linked_editing_range` |
 | Sessions | `:mksession` on exit, restored from the dashboard or projects picker (`lua/config/session.lua`) |
