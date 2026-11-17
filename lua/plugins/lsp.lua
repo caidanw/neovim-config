@@ -29,7 +29,7 @@ return {
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     dependencies = { 'mason-org/mason.nvim', 'mason-org/mason-lspconfig.nvim' },
     opts = function()
-      local servers = require('config.lsp_suggest.store').servers()
+      local servers = require('features.lsp_suggest.store').servers()
       -- Formatters conform runs on save. ruff also runs as a Python language server.
       return { ensure_installed = vim.list_extend(servers, { 'prettier', 'ruff', 'stylua' }) }
     end,

@@ -31,7 +31,7 @@ M.config = {
 ---@field elapsed? number seconds from first to last message, once finished
 
 local tasks = {} ---@type progress.Task[] in the order they started
-local ns = vim.api.nvim_create_namespace('config.progress')
+local ns = vim.api.nvim_create_namespace('features.progress')
 local buf, win ---@type integer?, integer?
 local timer ---@type uv.uv_timer_t?
 local frame = 1
@@ -210,7 +210,7 @@ function M.setup()
   vim.opt.messagesopt:remove('progress:c')
   vim.opt.messagesopt:append('progress:')
 
-  local group = vim.api.nvim_create_augroup('config.progress', { clear = true })
+  local group = vim.api.nvim_create_augroup('features.progress', { clear = true })
   vim.api.nvim_create_autocmd('Progress', {
     group = group,
     callback = function(ev)

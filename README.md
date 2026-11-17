@@ -39,17 +39,18 @@ The picker also has **Never for <file type>**. That answer is saved per machine 
 ## Layout
 
 ```text
-init.lua                 Sets the leader key and loads lua/config/
-lua/config/
+init.lua                 Sets the leader key, then loads config/, features/ and plugins/
+lua/config/              Settings, applied as init.lua requires them
   options.lua            Editor options
   keymaps.lua            General keymaps
   autocmds.lua           General autocommands
   lsp.lua                LSP keymaps, diagnostics, progress messages
-  progress.lua           Corner widget for progress messages
   completion.lua         Built-in completion as you type
+  lazy.lua               Installs lazy.nvim and loads lua/plugins/
+lua/features/            Features built here, each started by setup() in init.lua
+  progress.lua           Corner widget for progress messages
   session.lua            Per-directory sessions
   lsp_suggest/           Offers to install a language server for new file types
-  lazy.lua               Installs lazy.nvim and loads lua/plugins/
   macro_recording.lua    Turns `q` macro recording on and off
 lua/plugins/             One file per plugin or group of plugins
 lsp/                     Language server settings, merged over nvim-lspconfig's defaults
@@ -59,6 +60,13 @@ colors/                  Local colorschemes
 spell/                   Personal spelling words
 ```
 
+Where new code goes:
+
+- A setting, keymap, or autocommand: `lua/config/`.
+- A feature with its own state, commands, or windows: `lua/features/`, with a `setup()` call in `init.lua`.
+- A plugin: a spec in `lua/plugins/`.
+- Settings for one language server: `lsp/<name>.lua`.
+
 `lazy-lock.json` pins every plugin to a commit. Run `:Lazy update` to move the pins, then commit the file.
 
 ## Built-in features in use
@@ -67,10 +75,10 @@ spell/                   Personal spelling words
 |---|---|
 | Completion | `'autocomplete'` with the language server first, then buffer words (`lua/config/completion.lua`) |
 | Language servers | `vim.lsp.config` files in `lsp/`, enabled by mason-lspconfig |
-| Progress | LSP and Mason progress become native progress messages, drawn in the bottom-right corner by `lua/config/progress.lua` |
+| Progress | LSP and Mason progress become native progress messages, drawn in the bottom-right corner by `lua/features/progress.lua` |
 | Color swatches in CSS | `vim.lsp.document_color` |
 | Matching tag rename | `vim.lsp.linked_editing_range` |
-| Sessions | `:mksession` on exit, restored from the dashboard or projects picker (`lua/config/session.lua`) |
+| Sessions | `:mksession` on exit, restored from the dashboard or projects picker (`lua/features/session.lua`) |
 | Commenting | `gc` and `gcc` |
 | Select by syntax node | `an` and `in` in visual mode |
 

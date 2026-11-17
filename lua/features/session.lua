@@ -69,7 +69,7 @@ local function has_file_buffers()
 end
 
 function M.setup()
-  local group = vim.api.nvim_create_augroup('config.session', { clear = true })
+  local group = vim.api.nvim_create_augroup('features.session', { clear = true })
 
   -- Start autosaving only after a real file is read, so opening the dashboard
   -- and quitting does not overwrite the previous session.

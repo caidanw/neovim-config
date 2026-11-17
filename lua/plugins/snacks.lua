@@ -38,7 +38,7 @@ return {
   opts = {
     dashboard = {
       preset = {
-        -- Snacks' default keys, except Restore Session uses config.session.
+        -- Snacks' default keys, except Restore Session uses features.session.
         -- stylua: ignore
         keys = {
           { icon = ' ', key = 'f', desc = 'Find File', action = ":lua Snacks.dashboard.pick('files')" },
@@ -46,7 +46,7 @@ return {
           { icon = ' ', key = 'g', desc = 'Find Text', action = ":lua Snacks.dashboard.pick('live_grep')" },
           { icon = ' ', key = 'r', desc = 'Recent Files', action = ":lua Snacks.dashboard.pick('oldfiles')" },
           { icon = ' ', key = 'c', desc = 'Config', action = ":lua Snacks.dashboard.pick('files', {cwd = vim.fn.stdpath('config')})" },
-          { icon = ' ', key = 's', desc = 'Restore Session', action = function() require('config.session').load() end },
+          { icon = ' ', key = 's', desc = 'Restore Session', action = function() require('features.session').load() end },
           { icon = '󰒲 ', key = 'L', desc = 'Lazy', action = ':Lazy' },
           { icon = ' ', key = 'q', desc = 'Quit', action = ':qa' },
         },
@@ -62,7 +62,7 @@ return {
           indent = 2,
           padding = 2,
           action = function(dir)
-            require('config.session').open_project(dir)
+            require('features.session').open_project(dir)
           end,
         },
         { section = 'startup' },
@@ -90,7 +90,7 @@ return {
           confirm = function(picker, item)
             picker:close()
             if item then
-              require('config.session').open_project(item.file)
+              require('features.session').open_project(item.file)
             end
           end,
         },
@@ -171,9 +171,8 @@ return {
         -- Create some toggle mappings
         setup_snacks_toggles()
 
-        -- Create toggle mapping for custom macro recording keymaps
-        local MacroRecording = require('config.macro_recording')
-        MacroRecording.setup()
+        -- Toggle for lua/features/macro_recording.lua, set up in init.lua
+        local MacroRecording = require('features.macro_recording')
         Snacks.toggle
           .new({
             name = 'Macro Recording',

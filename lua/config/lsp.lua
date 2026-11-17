@@ -65,7 +65,7 @@ vim.diagnostic.config({
 })
 
 -- Turn LSP progress (indexing, loading workspace, ...) into native progress
--- messages, titled with the server name. lua/config/progress.lua draws them in
+-- messages, titled with the server name. lua/features/progress.lua draws them in
 -- the corner, and terminals that support OSC 9;4 show a progress bar.
 -- Servers send a task's title only in its first ('begin') report, so remember it.
 local progress_titles = {} ---@type table<string, string>

@@ -6,8 +6,8 @@
 -- Picking a server installs it with mason, adds it to lsp-servers.json and
 -- starts it in open buffers.
 
-local servers = require('config.lsp_suggest.servers')
-local store = require('config.lsp_suggest.store')
+local servers = require('features.lsp_suggest.servers')
+local store = require('features.lsp_suggest.store')
 
 local M = {}
 
@@ -423,7 +423,7 @@ function M.setup(opts)
   M.config = vim.tbl_deep_extend('force', defaults, opts or {})
 
   vim.api.nvim_create_autocmd('FileType', {
-    group = vim.api.nvim_create_augroup('config.lsp_suggest', { clear = true }),
+    group = vim.api.nvim_create_augroup('features.lsp_suggest', { clear = true }),
     callback = function(ev)
       if vim.bo[ev.buf].buftype == '' then
         vim.defer_fn(function()
