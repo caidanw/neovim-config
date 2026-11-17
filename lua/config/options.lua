@@ -52,6 +52,13 @@ vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 -- Ask to save instead of failing when quitting with unsaved changes.
 vim.o.confirm = true
 
+-- No remote plugins need the Python, Ruby, Perl or Node hosts. Turning them
+-- off skips looking for them at startup and in :checkhealth.
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_node_provider = 0
+
 -- Macro recording (`q`) starts disabled; toggle it with <leader>uq.
 vim.g.macro_recording = false
 
