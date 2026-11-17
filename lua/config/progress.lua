@@ -6,9 +6,11 @@
 -- bottom-right corner, right-aligned above the statusline:
 --
 --   Loading workspace 112/242  48%  lua_ls ⠹
---   Installing taplo                mason ✓
+--   Installing taplo         2.1s  mason ✓
 --
--- Finished tasks stay for `linger` ms, then disappear.
+-- Running tasks show their percent; finished ones show how long they took,
+-- measured here from their first to their last message. Finished tasks stay
+-- for `linger` ms, then disappear.
 
 local M = {}
 
@@ -25,6 +27,8 @@ M.config = {
 ---@field text string e.g. "Loading workspace 112/242"
 ---@field percent? integer
 ---@field status 'running'|'success'|'failed'|'cancel'
+---@field started integer hrtime of the first message
+---@field elapsed? number seconds from first to last message, once finished
 
 local tasks = {} ---@type progress.Task[] in the order they started
 local ns = vim.api.nvim_create_namespace('config.progress')
@@ -55,6 +59,9 @@ local function pieces(task)
   local result = { { task.text } }
   if task.status == 'running' and task.percent and task.percent > 0 then
     table.insert(result, { ('  %d%%'):format(task.percent), 'Comment' })
+  elseif task.elapsed then
+    local duration = task.elapsed < 60 and ('%.1fs'):format(task.elapsed) or ('%dm %02ds'):format(math.floor(task.elapsed / 60), math.floor(task.elapsed % 60))
+    table.insert(result, { '  ' .. duration, 'Comment' })
   end
   table.insert(result, { '  ' .. task.title, 'Title' })
   local icon = task.status == 'running' and M.config.spinner[frame] or M.config.icons[task.status] or '?'
@@ -173,13 +180,16 @@ local function on_progress(data)
   end
   local task = find(data.id)
   if not task then
-    task = { id = data.id, title = '', text = '', status = 'running' }
+    task = { id = data.id, title = '', text = '', status = 'running', started = vim.uv.hrtime() }
     table.insert(tasks, task)
   end
   task.title = data.title or data.source or ''
   task.text = to_string(data.text)
   task.percent = data.percent
   task.status = data.status or 'running'
+  if task.status ~= 'running' then
+    task.elapsed = (vim.uv.hrtime() - task.started) / 1e9
+  end
 
   if task.status ~= 'running' then
     local id = task.id
