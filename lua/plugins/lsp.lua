@@ -30,7 +30,8 @@ return {
     dependencies = { 'mason-org/mason.nvim', 'mason-org/mason-lspconfig.nvim' },
     opts = function()
       local servers = require('config.lsp_suggest.store').servers()
-      return { ensure_installed = vim.list_extend(servers, { 'prettier', 'stylua' }) }
+      -- Formatters conform runs on save. ruff also runs as a Python language server.
+      return { ensure_installed = vim.list_extend(servers, { 'prettier', 'ruff', 'stylua' }) }
     end,
   },
   {
