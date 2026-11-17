@@ -1,0 +1,11 @@
+[
+  "astro",
+  "basedpyright",
+  "css_variables",
+  "cssls",
+  "cssmodules_ls",
+  "jsonls",
+  "lua_ls",
+  "vtsls",
+  "yamlls"
+]

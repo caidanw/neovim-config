@@ -13,6 +13,8 @@ local function toggle_codelens()
   vim.lsp.codelens.enable(not vim.lsp.codelens.is_enabled({ bufnr = 0 }), { bufnr = 0 })
 end
 
+vim.keymap.set('n', '<leader>cL', '<Cmd>LspSuggest<CR>', { desc = 'Install a language server' })
+
 vim.api.nvim_create_autocmd('LspAttach', {
   group = vim.api.nvim_create_augroup('config.lsp_attach', { clear = true }),
   callback = function(event)

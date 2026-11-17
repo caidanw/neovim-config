@@ -11,6 +11,7 @@ require('config.autocmds')
 require('config.lsp')
 require('config.completion')
 require('config.session').setup()
+require('config.lsp_suggest').setup()
 require('config.lazy')
 
 -- vim: ts=2 sts=2 sw=2 et

@@ -24,26 +24,14 @@ return {
     },
   },
   {
-    -- Installs missing tools on startup. Servers use lspconfig names, other tools use mason names.
+    -- Installs missing tools on startup. Language servers come from
+    -- lsp-servers.json (lspconfig names), which :LspSuggest adds to.
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     dependencies = { 'mason-org/mason.nvim', 'mason-org/mason-lspconfig.nvim' },
-    opts = {
-      ensure_installed = {
-        -- Language servers
-        'astro',
-        'basedpyright',
-        'css_variables',
-        'cssls',
-        'cssmodules_ls',
-        'jsonls',
-        'lua_ls',
-        'vtsls',
-        'yamlls',
-        -- Formatters
-        'prettier',
-        'stylua',
-      },
-    },
+    opts = function()
+      local servers = require('config.lsp_suggest.store').servers()
+      return { ensure_installed = vim.list_extend(servers, { 'prettier', 'stylua' }) }
+    end,
   },
   {
     -- JSON and YAML schemas, loaded by lsp/jsonls.lua and lsp/yamlls.lua.

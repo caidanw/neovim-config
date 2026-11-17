@@ -26,7 +26,13 @@ git clone git@github.com:caidanw/neovim-config.git ~/.config/nvim
 nvim
 ```
 
-On first start, lazy.nvim installs the plugins, nvim-treesitter compiles parsers, and Mason installs the language servers and formatters. Run `:checkhealth` if anything fails.
+On first start, lazy.nvim installs the plugins, nvim-treesitter compiles parsers, and Mason installs the formatters and the language servers listed in `lsp-servers.json`. Run `:checkhealth` if anything fails.
+
+## Add a language server
+
+When you open a file type that no installed server handles, a notification says so. Press `<leader>cL` (or run `:LspSuggest`) to pick a server. Mason installs it, it starts in the open buffers, and its name is added to `lsp-servers.json`. Commit that file so other machines install the server too.
+
+The picker also has **Never for <file type>**. That answer is saved per machine in `~/.local/state/nvim/lsp-suggest.json`. `:LspSuggest` still opens the picker for a declined file type.
 
 ## Layout
 
@@ -39,10 +45,12 @@ lua/config/
   lsp.lua                LSP keymaps, diagnostics, progress messages
   completion.lua         Built-in completion as you type
   session.lua            Per-directory sessions
+  lsp_suggest/           Offers to install a language server for new file types
   lazy.lua               Installs lazy.nvim and loads lua/plugins/
   macro_recording.lua    Turns `q` macro recording on and off
 lua/plugins/             One file per plugin or group of plugins
 lsp/                     Language server settings, merged over nvim-lspconfig's defaults
+lsp-servers.json         Language servers Mason installs on startup
 ftplugin/                Filetype overrides
 colors/                  Local colorschemes
 spell/                   Personal spelling words
@@ -95,6 +103,7 @@ The leader key is Space. Press it and wait to see every group in which-key, or s
 | `grr`, `gri`, `grt`, `gO` | References, implementations, type definitions, document symbols |
 | `grn`, `gra`, `K`, `<C-s>` | Rename, code action, hover, signature help (Neovim defaults) |
 | `gd`, `gD` | Definition, declaration |
+| `<leader>cL` | Install a language server for the current file type |
 | `<C-y>`, `<C-n>`, `<C-p>`, `<C-space>` | Accept, next, and previous completion; ask the language server |
 | `]f`, `]c`, `]a` | Next function, class, or argument. In diff mode, `]c` jumps to the next change. |
 | `<leader>u` | Toggles: format on save, inlay hints, wrap, spelling, and more |
