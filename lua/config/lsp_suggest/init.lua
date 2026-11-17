@@ -140,19 +140,89 @@ function M.install(candidate)
   end))
 end
 
+---@alias lsp_suggest.Item { label: string, candidate?: lsp_suggest.Candidate, action?: 'all'|'later'|'never', preview: { text: string, ft: string } }
+
 ---@param candidate lsp_suggest.Candidate
----@return string
-local function label(candidate)
-  local notes = {} ---@type string[]
+---@return { text: string, hl?: string }[] tags shown after the name
+local function tags(candidate)
+  local result = {} ---@type { text: string, hl?: string }[]
+  if candidate.deprecation then
+    table.insert(result, { text = 'deprecated', hl = 'DiagnosticWarn' })
+  end
   if require('mason-registry').is_installed(candidate.package) then
-    table.insert(notes, 'installed')
+    table.insert(result, { text = 'installed', hl = 'DiagnosticOk' })
   end
   if candidate.recommended then
-    table.insert(notes, 'recommended')
-  elseif candidate.general then
-    table.insert(notes, ('general, %d file types'):format(candidate.filetypes))
+    table.insert(result, { text = 'recommended', hl = 'DiagnosticInfo' })
   end
-  return #notes > 0 and ('%s  (%s)'):format(candidate.name, table.concat(notes, ', ')) or candidate.name
+  if candidate.general then
+    table.insert(result, { text = ('general, %d file types'):format(#candidate.filetypes) })
+  end
+  return result
+end
+
+--- Markdown shown in the picker's preview pane (snacks only).
+---@param candidate lsp_suggest.Candidate
+---@param ft string
+---@return string
+local function details(candidate, ft)
+  local lines = { '# ' .. candidate.name, '' }
+  if candidate.deprecation then
+    vim.list_extend(lines, {
+      ('> **Deprecated** since %s: %s'):format(candidate.deprecation.since, candidate.deprecation.message),
+      '',
+    })
+  end
+  if candidate.description then
+    vim.list_extend(lines, { candidate.description, '' })
+  end
+  local function row(key, value)
+    if value and value ~= '' then
+      table.insert(lines, ('- **%s:** %s'):format(key, value))
+    end
+  end
+  local installed = require('mason-registry').is_installed(candidate.package)
+  row('Status', installed and 'installed' or 'not installed')
+  row('Recommended', candidate.recommended and ('yes, for %s'):format(ft) or nil)
+  row('Categories', table.concat(candidate.categories, ', '))
+  row('Languages', table.concat(candidate.languages, ', '))
+  row('File types', table.concat(candidate.filetypes, ', '))
+  row('License', table.concat(candidate.licenses, ', '))
+  row('Homepage', candidate.homepage)
+  row('Mason package', candidate.package)
+  if candidate.homepage then
+    vim.list_extend(lines, { '', '`<C-o>` opens the homepage.' })
+  end
+  return table.concat(lines, '\n')
+end
+
+---@param item lsp_suggest.Item
+---@param highlighted? boolean true when snacks asks for highlight chunks
+---@return string|{ [1]: string, [2]?: string }[]
+local function format_item(item, highlighted)
+  local candidate = item.candidate
+  if not candidate then
+    return highlighted and { { item.label, 'Comment' } } or item.label
+  end
+
+  local item_tags = tags(candidate)
+  if not highlighted then
+    local tag_text = vim.tbl_map(function(tag)
+      return tag.text
+    end, item_tags)
+    local text = #tag_text > 0 and ('%s (%s)'):format(candidate.name, table.concat(tag_text, ', ')) or candidate.name
+    return candidate.description and ('%s - %s'):format(text, candidate.description) or text
+  end
+
+  local chunks = { { candidate.name, candidate.deprecation and 'Comment' or nil } }
+  for _, tag in ipairs(item_tags) do
+    table.insert(chunks, { ' ' })
+    table.insert(chunks, { '[' .. tag.text .. ']', tag.hl or 'Comment' })
+  end
+  if candidate.description then
+    table.insert(chunks, { '  ' .. candidate.description, 'Comment' })
+  end
+  return chunks
 end
 
 --- Open the picker of servers for `ft` (default: the current buffer's).
@@ -181,22 +251,47 @@ function M.suggest(ft, opts)
     shown = #shown > 0 and vim.list_slice(shown, 1, M.config.shown) or vim.list_slice(candidates, 1, M.config.shown)
   end
 
-  local items = {} ---@type { label: string, candidate?: lsp_suggest.Candidate, action?: string }[]
+  local items = {} ---@type lsp_suggest.Item[]
+  local function add(item, preview)
+    item.preview = { text = preview, ft = 'markdown' }
+    table.insert(items, item)
+  end
   for _, candidate in ipairs(shown) do
-    table.insert(items, { label = label(candidate), candidate = candidate })
+    add({ label = candidate.name, candidate = candidate }, details(candidate, ft))
   end
   if #shown < #candidates then
-    table.insert(items, { label = ('Show all %d servers…'):format(#candidates), action = 'all' })
+    add(
+      { label = ('Show all %d servers…'):format(#candidates), action = 'all' },
+      'List every server mason can install for ' .. ft .. ', including general-purpose tools.'
+    )
   end
-  table.insert(items, { label = 'Not now', action = 'later' })
-  table.insert(items, { label = ('Never for %s'):format(ft), action = 'never' })
+  add({ label = 'Not now', action = 'later' }, 'Close. The notification comes back next session.')
+  add(
+    { label = ('Never for %s'):format(ft), action = 'never' },
+    ('Stop suggesting servers for %s on this machine. `:LspSuggest` still opens this picker.'):format(ft)
+  )
 
   vim.ui.select(items, {
     prompt = ('Install a language server for %s'):format(ft),
-    format_item = function(item)
-      return item.label
-    end,
+    format_item = format_item,
     kind = 'lsp_suggest',
+    -- Read only by snacks' vim.ui.select; other implementations ignore it.
+    snacks = {
+      preview = 'preview',
+      layout = { hidden = {} },
+      actions = {
+        open_homepage = function(_, picked)
+          local url = picked and picked.item and picked.item.candidate and picked.item.candidate.homepage
+          if url then
+            vim.ui.open(url)
+          end
+        end,
+      },
+      win = {
+        input = { keys = { ['<C-o>'] = { 'open_homepage', mode = { 'n', 'i' }, desc = 'Open homepage' } } },
+        list = { keys = { ['<C-o>'] = { 'open_homepage', desc = 'Open homepage' } } },
+      },
+    },
   }, function(item)
     if not item or item.action == 'later' then
       return
@@ -227,9 +322,10 @@ local function should_suggest(buf)
   if #vim.lsp.get_clients({ bufnr = buf }) > 0 or servers.is_handled(ft) then
     return false
   end
-  -- Stay quiet when only general-purpose tools (spell checkers, emmet, ...) exist.
+  -- Stay quiet when the only options are general-purpose tools (spell
+  -- checkers, emmet, ...) or deprecated servers.
   for _, candidate in ipairs(servers.candidates(ft, M.config)) do
-    if not candidate.general then
+    if not candidate.general and not candidate.deprecation then
       return true
     end
   end

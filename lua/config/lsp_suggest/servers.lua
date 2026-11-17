@@ -74,39 +74,58 @@ end
 ---@class lsp_suggest.Candidate
 ---@field name string lspconfig name, e.g. "basedpyright"
 ---@field package string mason package, e.g. "basedpyright"
----@field filetypes integer how many filetypes the server covers
+---@field filetypes string[] every file type the server covers
 ---@field recommended boolean
----@field general boolean covers so many filetypes that it is not specific to `ft`
+---@field general boolean covers so many file types that it is not specific to `ft`
+---@field description? string from the mason registry
+---@field homepage? string
+---@field licenses string[]
+---@field languages string[]
+---@field categories string[] e.g. { "LSP" } or { "LSP", "Linter" }
+---@field deprecation? { since: string, message: string }
 
---- Servers mason can install for `ft`: recommended first, then the most
---- specific ones (fewest filetypes), then by name.
+--- Servers mason can install for `ft`, best first: deprecated servers last,
+--- then the recommended one, then the most specific (fewest file types), then
+--- by name.
 ---@param ft string
 ---@param opts { recommended: table<string, string>, max_filetypes: integer }
 ---@return lsp_suggest.Candidate[]
 function M.candidates(ft, opts)
   local to_package = require('mason-lspconfig').get_mappings().lspconfig_to_package
+  local registry = require('mason-registry')
   local result = {} ---@type lsp_suggest.Candidate[]
   for name, filetypes in pairs(M.index()) do
     local pkg = to_package[name]
     if pkg and vim.list_contains(filetypes, ft) then
+      local found, mason_pkg = pcall(registry.get_package, pkg)
+      local spec = found and mason_pkg.spec or {}
       table.insert(result, {
         name = name,
         package = pkg,
-        filetypes = #filetypes,
+        filetypes = filetypes,
         recommended = opts.recommended[ft] == name,
         general = #filetypes > opts.max_filetypes,
+        description = spec.description,
+        homepage = spec.homepage,
+        licenses = spec.licenses or {},
+        languages = spec.languages or {},
+        categories = spec.categories or {},
+        deprecation = spec.deprecation,
       })
     end
   end
   table.sort(result, function(a, b)
+    if (a.deprecation == nil) ~= (b.deprecation == nil) then
+      return a.deprecation == nil
+    end
     if a.recommended ~= b.recommended then
       return a.recommended
     end
     if a.general ~= b.general then
       return not a.general
     end
-    if a.filetypes ~= b.filetypes then
-      return a.filetypes < b.filetypes
+    if #a.filetypes ~= #b.filetypes then
+      return #a.filetypes < #b.filetypes
     end
     return a.name < b.name
   end)

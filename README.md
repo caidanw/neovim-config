@@ -32,6 +32,8 @@ On first start, lazy.nvim installs the plugins, nvim-treesitter compiles parsers
 
 When you open a file type that no installed server handles, a notification says so. Press `<leader>cL` (or run `:LspSuggest`) to pick a server. Mason installs it, it starts in the open buffers, and its name is added to `lsp-servers.json`. Commit that file so other machines install the server too.
 
+Each server in the picker shows its Mason description. The preview pane lists its categories, languages, file types, license, and homepage. Press `<C-o>` to open the homepage. Deprecated servers are listed last, with the reason.
+
 The picker also has **Never for <file type>**. That answer is saved per machine in `~/.local/state/nvim/lsp-suggest.json`. `:LspSuggest` still opens the picker for a declined file type.
 
 ## Layout
