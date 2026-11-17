@@ -9,7 +9,7 @@ return {
     ---@type render.md.UserConfig
     opts = {},
     init = function()
-      -- Set up snacks toggle keymap for rendering markdown
+      -- <leader>um toggles rendering, which is on by default.
       require('snacks').toggle
         .new({
           name = 'Markdown Render',
@@ -17,7 +17,6 @@ return {
           set = require('render-markdown').set,
         })
         :map('<leader>um')
-      require('render-markdown').set(false)
     end,
   },
 }
