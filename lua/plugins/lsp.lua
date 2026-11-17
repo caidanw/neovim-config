@@ -30,11 +30,15 @@ return {
     opts = {
       ensure_installed = {
         -- Language servers
+        'astro',
+        'basedpyright',
         'css_variables',
         'cssls',
+        'cssmodules_ls',
         'jsonls',
         'lua_ls',
         'vtsls',
+        'yamlls',
         -- Formatters
         'prettier',
         'stylua',
