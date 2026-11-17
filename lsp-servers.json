@@ -6,6 +6,7 @@
   "cssmodules_ls",
   "jsonls",
   "lua_ls",
+  "rust_analyzer",
   "vtsls",
   "yamlls"
 ]
