@@ -140,12 +140,22 @@ function M.install(candidate)
   end))
 end
 
----@alias lsp_suggest.Item { label: string, candidate?: lsp_suggest.Candidate, action?: 'all'|'later'|'never', preview: { text: string, ft: string } }
+---@class lsp_suggest.Preview
+---@field text string
+---@field extmarks { row: integer, col: integer, end_col: integer, hl_group: string }[]
+---@field loc false
+
+---@class lsp_suggest.Item
+---@field label string
+---@field candidate? lsp_suggest.Candidate
+---@field action? 'all'|'later'|'never'
+---@field width integer width of the name column, so tags line up
+---@field preview lsp_suggest.Preview read by snacks' "preview" previewer
 
 ---@param candidate lsp_suggest.Candidate
----@return { text: string, hl?: string }[] tags shown after the name
+---@return { text: string, hl: string }[]
 local function tags(candidate)
-  local result = {} ---@type { text: string, hl?: string }[]
+  local result = {} ---@type { text: string, hl: string }[]
   if candidate.deprecation then
     table.insert(result, { text = 'deprecated', hl = 'DiagnosticWarn' })
   end
@@ -156,44 +166,91 @@ local function tags(candidate)
     table.insert(result, { text = 'recommended', hl = 'DiagnosticInfo' })
   end
   if candidate.general then
-    table.insert(result, { text = ('general, %d file types'):format(#candidate.filetypes) })
+    table.insert(result, { text = ('general, %d file types'):format(#candidate.filetypes), hl = 'Comment' })
   end
   return result
 end
 
---- Markdown shown in the picker's preview pane (snacks only).
+--- Builds preview text line by line, recording highlights as it goes.
+local function preview_builder()
+  local lines, extmarks = {}, {} ---@type string[], table[]
+  local builder = {}
+
+  --- Append a line made of { text, hl? } pieces.
+  ---@param pieces { [1]: string, [2]?: string }[]
+  function builder.line(pieces)
+    local text = ''
+    for _, piece in ipairs(pieces) do
+      -- Mason descriptions contain hard line breaks; the window wraps instead.
+      local chunk = (piece[1]:gsub('%s*\n%s*', ' '))
+      if piece[2] then
+        table.insert(extmarks, { row = #lines + 1, col = #text, end_col = #text + #chunk, hl_group = piece[2] })
+      end
+      text = text .. chunk
+    end
+    table.insert(lines, text)
+  end
+
+  ---@return lsp_suggest.Preview
+  function builder.done()
+    return { text = table.concat(lines, '\n'), extmarks = extmarks, loc = false }
+  end
+
+  return builder
+end
+
 ---@param candidate lsp_suggest.Candidate
----@param ft string
----@return string
-local function details(candidate, ft)
-  local lines = { '# ' .. candidate.name, '' }
+---@return lsp_suggest.Preview
+local function details(candidate)
+  local b = preview_builder()
+  b.line({ { candidate.name, 'Title' } })
+
+  local status = {} ---@type { [1]: string, [2]?: string }[]
+  for i, tag in ipairs(tags(candidate)) do
+    if i > 1 then
+      table.insert(status, { ' · ', 'Comment' })
+    end
+    table.insert(status, { tag.text, tag.hl })
+  end
+  b.line(#status > 0 and status or { { 'not installed', 'Comment' } })
+  b.line({})
+
   if candidate.deprecation then
-    vim.list_extend(lines, {
-      ('> **Deprecated** since %s: %s'):format(candidate.deprecation.since, candidate.deprecation.message),
-      '',
+    b.line({
+      { ('Deprecated since %s: %s'):format(candidate.deprecation.since, candidate.deprecation.message), 'DiagnosticWarn' },
     })
+    b.line({})
   end
   if candidate.description then
-    vim.list_extend(lines, { candidate.description, '' })
+    b.line({ { vim.trim(candidate.description) } })
+    b.line({})
   end
-  local function row(key, value)
+
+  local function row(key, value, hl)
     if value and value ~= '' then
-      table.insert(lines, ('- **%s:** %s'):format(key, value))
+      b.line({ { ('%-12s'):format(key), 'Comment' }, { value, hl } })
     end
   end
-  local installed = require('mason-registry').is_installed(candidate.package)
-  row('Status', installed and 'installed' or 'not installed')
-  row('Recommended', candidate.recommended and ('yes, for %s'):format(ft) or nil)
   row('Categories', table.concat(candidate.categories, ', '))
   row('Languages', table.concat(candidate.languages, ', '))
   row('File types', table.concat(candidate.filetypes, ', '))
   row('License', table.concat(candidate.licenses, ', '))
-  row('Homepage', candidate.homepage)
-  row('Mason package', candidate.package)
+  row('Homepage', candidate.homepage, 'Underlined')
+  row('Package', candidate.package)
+
   if candidate.homepage then
-    vim.list_extend(lines, { '', '`<C-o>` opens the homepage.' })
+    b.line({})
+    b.line({ { '<C-o>', 'Special' }, { ' open homepage', 'Comment' } })
   end
-  return table.concat(lines, '\n')
+  return b.done()
+end
+
+---@param text string
+---@return lsp_suggest.Preview
+local function note(text)
+  local b = preview_builder()
+  b.line({ { text, 'Comment' } })
+  return b.done()
 end
 
 ---@param item lsp_suggest.Item
@@ -207,6 +264,7 @@ local function format_item(item, highlighted)
 
   local item_tags = tags(candidate)
   if not highlighted then
+    -- No preview pane outside snacks, so the description goes on the line.
     local tag_text = vim.tbl_map(function(tag)
       return tag.text
     end, item_tags)
@@ -214,13 +272,11 @@ local function format_item(item, highlighted)
     return candidate.description and ('%s - %s'):format(text, candidate.description) or text
   end
 
-  local chunks = { { candidate.name, candidate.deprecation and 'Comment' or nil } }
+  local name = candidate.name .. (' '):rep(item.width - #candidate.name)
+  local chunks = { { name, candidate.deprecation and 'Comment' or nil } } ---@type { [1]: string, [2]?: string }[]
   for _, tag in ipairs(item_tags) do
-    table.insert(chunks, { ' ' })
-    table.insert(chunks, { '[' .. tag.text .. ']', tag.hl or 'Comment' })
-  end
-  if candidate.description then
-    table.insert(chunks, { '  ' .. candidate.description, 'Comment' })
+    table.insert(chunks, { '  ' })
+    table.insert(chunks, { tag.text, tag.hl })
   end
   return chunks
 end
@@ -251,25 +307,35 @@ function M.suggest(ft, opts)
     shown = #shown > 0 and vim.list_slice(shown, 1, M.config.shown) or vim.list_slice(candidates, 1, M.config.shown)
   end
 
-  local items = {} ---@type lsp_suggest.Item[]
-  local function add(item, preview)
-    item.preview = { text = preview, ft = 'markdown' }
-    table.insert(items, item)
-  end
+  local width = 0
   for _, candidate in ipairs(shown) do
-    add({ label = candidate.name, candidate = candidate }, details(candidate, ft))
+    width = math.max(width, #candidate.name)
+  end
+
+  local items = {} ---@type lsp_suggest.Item[]
+  for _, candidate in ipairs(shown) do
+    table.insert(items, { label = candidate.name, candidate = candidate, width = width, preview = details(candidate) })
   end
   if #shown < #candidates then
-    add(
-      { label = ('Show all %d servers…'):format(#candidates), action = 'all' },
-      'List every server mason can install for ' .. ft .. ', including general-purpose tools.'
-    )
+    table.insert(items, {
+      label = ('Show all %d servers…'):format(#candidates),
+      action = 'all',
+      width = width,
+      preview = note(('List every server mason can install for %s, including general-purpose tools.'):format(ft)),
+    })
   end
-  add({ label = 'Not now', action = 'later' }, 'Close. The notification comes back next session.')
-  add(
-    { label = ('Never for %s'):format(ft), action = 'never' },
-    ('Stop suggesting servers for %s on this machine. `:LspSuggest` still opens this picker.'):format(ft)
-  )
+  table.insert(items, {
+    label = 'Not now',
+    action = 'later',
+    width = width,
+    preview = note('Close. The notification comes back next session.'),
+  })
+  table.insert(items, {
+    label = ('Never for %s'):format(ft),
+    action = 'never',
+    width = width,
+    preview = note(('Stop suggesting servers for %s on this machine. :LspSuggest still opens this picker.'):format(ft)),
+  })
 
   vim.ui.select(items, {
     prompt = ('Install a language server for %s'):format(ft),
@@ -278,7 +344,8 @@ function M.suggest(ft, opts)
     -- Read only by snacks' vim.ui.select; other implementations ignore it.
     snacks = {
       preview = 'preview',
-      layout = { hidden = {} },
+      -- List on the left, details on the right.
+      layout = { preset = 'default', layout = { height = 0.6, min_height = 24 } },
       actions = {
         open_homepage = function(_, picked)
           local url = picked and picked.item and picked.item.candidate and picked.item.candidate.homepage
@@ -290,6 +357,11 @@ function M.suggest(ft, opts)
       win = {
         input = { keys = { ['<C-o>'] = { 'open_homepage', mode = { 'n', 'i' }, desc = 'Open homepage' } } },
         list = { keys = { ['<C-o>'] = { 'open_homepage', desc = 'Open homepage' } } },
+        preview = {
+          minimal = true,
+          -- statuscolumn pads every screen line, including wrapped ones.
+          wo = { wrap = true, linebreak = true, breakindent = true, statuscolumn = '  ' },
+        },
       },
     },
   }, function(item)
