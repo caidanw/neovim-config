@@ -70,7 +70,7 @@ local asked = {}
 local function hint()
   for _, map in ipairs(vim.api.nvim_get_keymap('n')) do
     if map.rhs and map.rhs:find('LspSuggest') then
-      local lhs = vim.fn.keytrans(map.lhsraw or map.lhs)
+      local lhs = vim.fn.keytrans(map.lhsraw or map.lhs or '')
       local leader = vim.fn.keytrans(vim.g.mapleader or '\\')
       if vim.startswith(lhs, leader) then
         lhs = '<leader>' .. lhs:sub(#leader + 1)
@@ -109,31 +109,31 @@ function M.install(candidate)
   end
 
   registry.refresh(vim.schedule_wrap(function()
-    local found, pkg = pcall(registry.get_package, candidate.package)
+    local found, pkg = pcall(registry.get_package, candidate.mason_package)
     if not found then
-      vim.notify(('mason has no package %s'):format(candidate.package), vim.log.levels.ERROR)
+      vim.notify(('mason has no package %s'):format(candidate.mason_package), vim.log.levels.ERROR)
       return
     end
     if pkg:is_installing() then
-      vim.notify(('%s is already installing'):format(candidate.package))
+      vim.notify(('%s is already installing'):format(candidate.mason_package))
       return
     end
     if pkg:is_installed() then
       start()
-      progress(candidate.name, 'success', ('%s is already installed'):format(candidate.package))
+      progress(candidate.name, 'success', ('%s is already installed'):format(candidate.mason_package))
       return
     end
 
-    progress(candidate.name, 'running', ('Installing %s'):format(candidate.package))
+    progress(candidate.name, 'running', ('Installing %s'):format(candidate.mason_package))
     pkg:install(
       {},
       vim.schedule_wrap(function(success, result)
         if success then
           start()
-          progress(candidate.name, 'success', ('Installed %s'):format(candidate.package))
+          progress(candidate.name, 'success', ('Installed %s'):format(candidate.mason_package))
         else
-          progress(candidate.name, 'failed', ('Installing %s failed'):format(candidate.package))
-          vim.notify(('Installing %s failed: %s'):format(candidate.package, tostring(result)), vim.log.levels.ERROR)
+          progress(candidate.name, 'failed', ('Installing %s failed'):format(candidate.mason_package))
+          vim.notify(('Installing %s failed: %s'):format(candidate.mason_package, tostring(result)), vim.log.levels.ERROR)
         end
       end)
     )
@@ -159,7 +159,7 @@ local function tags(candidate)
   if candidate.deprecation then
     table.insert(result, { text = 'deprecated', hl = 'DiagnosticWarn' })
   end
-  if require('mason-registry').is_installed(candidate.package) then
+  if require('mason-registry').is_installed(candidate.mason_package) then
     table.insert(result, { text = 'installed', hl = 'DiagnosticOk' })
   end
   if candidate.recommended then
@@ -236,7 +236,7 @@ local function details(candidate)
   row('File types', table.concat(candidate.filetypes, ', '))
   row('License', table.concat(candidate.licenses, ', '))
   row('Homepage', candidate.homepage, 'Underlined')
-  row('Package', candidate.package)
+  row('Package', candidate.mason_package)
 
   if candidate.homepage then
     b.line({})

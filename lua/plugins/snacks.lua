@@ -61,7 +61,9 @@ return {
           section = 'projects',
           indent = 2,
           padding = 2,
+          -- snacks calls this with the project directory, not the dashboard.
           action = function(dir)
+            ---@cast dir string
             require('features.session').open_project(dir)
           end,
         },
@@ -78,6 +80,8 @@ return {
       win = {
         bo = { filetype = 'lazygit' },
       },
+      -- snacks merges this over its default theme, so one color is enough.
+      ---@diagnostic disable-next-line: missing-fields
       theme = {
         -- Use a lighter background for selected lines
         selectedLineBgColor = { bg = 'LazyGitSelectedLine' },

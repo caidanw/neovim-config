@@ -106,6 +106,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
       -- Get all lines that match the heading pattern (repeated = or -)
       local matches = vim.fn.matchbufline(event.buf, '^[=-]\\+', 1, end_line)
+      ---@cast matches { text: string }[]
 
       -- Find the max width of all headings
       local max_heading_width = 0

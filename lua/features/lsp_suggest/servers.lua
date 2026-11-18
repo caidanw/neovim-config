@@ -73,7 +73,7 @@ end
 
 ---@class lsp_suggest.Candidate
 ---@field name string lspconfig name, e.g. "basedpyright"
----@field package string mason package, e.g. "basedpyright"
+---@field mason_package string e.g. "basedpyright"
 ---@field filetypes string[] every file type the server covers
 ---@field recommended boolean
 ---@field general boolean covers so many file types that it is not specific to `ft`
@@ -101,7 +101,7 @@ function M.candidates(ft, opts)
       local spec = found and mason_pkg.spec or {}
       table.insert(result, {
         name = name,
-        package = pkg,
+        mason_package = pkg,
         filetypes = filetypes,
         recommended = opts.recommended[ft] == name,
         general = #filetypes > opts.max_filetypes,
